@@ -9,11 +9,12 @@ class ChecarCpf:
 		
 	def tratamento(self):
 		self.cpf = [x for x in self.cpf if x.isnumeric()]#pegar somente os numeros do 'cpf'
+		self.regiao = self.cpf[8]#digito da regiao
 		if len(self.cpf)==11:
-		    return True
+		    return True, str(self.regiao)
 		elif len(self.cpf)>11:
 		    self.cpf[:11]#pegar os primeiros elementos 
-		    return True
+		    return True, str(self.regiao)
 		else:#se o tamanho do 'cpf' for menor que 11
 		    return False
 		    
@@ -83,14 +84,29 @@ def check_file(form):
         lista = [linha.rstrip() for linha in linhas]
     site = "site do projeto: https://checarcpf.onrender.com"
     github = "codigo fonte: https://github.com/Fabiolegra/ChecarCpf"
+    aparencia = "     CPF       |    Regioes     "
     invalidos = [site,github]
-    validos = [site,github]
+    validos = [site,github,aparencia]
+    cpf_regioes = {
+    '0': 'Rio Grande do Sul',
+    '1': 'Distrito Federal, Goias, Mato Grosso, Mato Grosso do Sul e Tocantins',
+    '2': 'Amazonas, Para, Roraima, Amapa, Acre e Rondonia',
+    '3': 'Ceará, Maranhão e Piauí',
+    '4': 'Paraiba, Pernambuco, Alagoas e Rio Grande do Norte',
+    '5': 'Bahia e Sergipe',
+    '6': 'Minas Gerais',
+    '7': 'Rio de Janeiro e Espirito Santo',
+    '8': 'São Paulo',
+    '9': 'Parana e Santa Catarina'
+    }
     # checa se o cpf da lista e valida ou nao adicionando ela em outra lista validos ou invalidos
     for cpf_ in lista:
         objetoCpf = ChecarCpf(cpf_)
-        if objetoCpf.tratamento():
+        validacao, regiao_digito = objetoCpf.tratamento()
+        if validacao:
             if objetoCpf.calculo():
-                validos.append(objetoCpf.cpf)#cpf formatado
+                regiao = cpf_regioes[regiao_digito]
+                validos.append(f"{objetoCpf.cpf} - {regiao}")#cpf formatado
             else:
                 invalidos.append(cpf_)
         else:
