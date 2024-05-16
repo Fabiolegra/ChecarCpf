@@ -82,3 +82,5 @@ O arquivo .txt deve conter um CPF por linha. Por exemplo:
 2637383837;#&#€#€@*62728256
 ```
 O codigo checar os primeiros 11 numeros.
+
+Sinta-se à vontade para contribuir ou reportar problemas!
