@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container justify-content-center text-align-center">
+    <h1 class="str">Resultados:</h1>
+    <div class="border border-1 border-white rounded p-3 ">
+        <a href="{{ url_for('download', filename='validos/' + validos_) }}" download="validos">
+            <button class="btn btn-outline-success str mb-1">Baixar CPF válidos</button>
+        </a>
+        <a href="{{ url_for('download', filename='invalidos/' + invalidos_) }}" download="invalidos">
+            <button class="btn btn-outline-danger str">Baixar CPF inválidos</button>
+        </a>
+    </div>
+</div>
+{% endblock %}

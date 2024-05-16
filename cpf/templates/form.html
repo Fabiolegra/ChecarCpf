@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="d-flex py-3 text-center justify-content-center container">
+    <form method="POST" enctype="multipart/form-data" action="" class="d-flex-wrap border rounded p-3 mt-2 justify-items-center">
+    {{cpf.csrf_token}}
+    <h1 class="str">Validador de Cpf</h1>
+    <!-- adiciona as mensagens de alerta-->
+    <div class="container str">
+    {% with mensagens = get_flashed_messages(with_categories=True) %}
+        {% if mensagens %}
+            {% for categoria,mensagem in mensagens %}
+                <div class="alert {{categoria}} mt-1 ">
+                    {{mensagem}}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    </div>
+    <!-- Formulario de Checar cpf -->
+    <div class="container form-group justify-items-center">
+        {{cpf.form_cpf.label(class="form-control-label str")}}
+        {% if cpf.form_cpf.errors %}
+            {{cpf.form_cpf(class="form-control is-invalid")}}
+        <div class="invalid-feedback">
+            {% for error in cpf.form_cpf.errors %}
+                {{error}}
+            {% endfor %}
+        </div>
+        {% else %}
+            {{cpf.form_cpf(class="form-control strb")}}
+        {% endif %}
+    </div>
+    <p class="str">ou</p>
+    <!-- local para adicionar Um arquivo -->
+    <p class="str">cada cpf deverá conter em uma linha no txt</p>
+    <div class="form-group">
+        {{cpf.arquivo.label(class="str")}}
+        <br>
+        {{cpf.arquivo(class="form-control-file str")}}
+        {% if cpf.arquivo.errors%}
+            {% for error in cpf.arquivo.errors%}
+                <span class="text-danger">{{error}}</span>
+            {% endfor %}
+        {% endif %}
+    </div>
+    <!-- botão-->
+    {{cpf.botao(class="btn btn-outline-light str my-2")}}
+</form>
+</div>
+{% endblock %}
