@@ -1,151 +1,160 @@
+"""
+Modulo que reune todas as funções do projeto.
+"""
 import secrets
 import os
-from cpf import app 
-from flask import flash, redirect, url_for
+from flask import flash
+from cpf import app
 
 class ChecarCpf:
-	def __init__(self,cpf):
-	    self.cpf = str(cpf)
-		
-	def tratamento(self):
-		self.cpf = [x for x in self.cpf if x.isnumeric()]#pegar somente os numeros do 'cpf'
-		self.regiao = self.cpf[8]#digito da regiao
-		if len(self.cpf)==11:
-		    return True, str(self.regiao)
-		elif len(self.cpf)>11:
-		    self.cpf[:11]#pegar os primeiros elementos 
-		    return True, str(self.regiao)
-		else:#se o tamanho do 'cpf' for menor que 11
-		    return False
-		    
-	def calculo(self):
-	    self.primeiros = self.cpf[:9]
-	    self.verificadores = self.cpf[9:]
-	    for k in range(2):
-	        if k == 0:
-	        	self.mult = list(range(10,1,-1))
-	        if k == 1:
-	        	self.mult = list(range(11,1,-1))
-	        soma = 0
-	        for i,num in enumerate(self.primeiros):
-	            soma += int(num)*self.mult[i]
-	        resto = soma % 11
-	        if resto == 0 or resto ==1:
-	            final = 0 
-	        else:
-	            final = 11 - resto
-	        if final == int(self.verificadores[k]):
-	            self.primeiros.append(self.verificadores[k])
-	            if k==1:
-	                # estilizando o cpf 000.000.000-00
-	                self.primeiros.insert(3,".")
-	                self.primeiros.insert(7,".")
-	                self.primeiros.insert(11,"-")
-	                self.cpf = ''.join(self.primeiros)
-	                return True
-	        else:
-	            return False 
-	          
-	            
+    """
+    Classe para checar e validar números de CPF brasileiros.
+    """
+
+    def __init__(self, cpf):
+        """
+        Inicializa com o número de CPF fornecido.
+        """
+        self.cpf = str(cpf)
+        self.regiao = None
+        self.primeiros = []
+        self.verificadores = []
+        self.mult = []
+
+    def tratamento(self):
+        """
+        Processa o CPF para garantir que está no formato correto e determina sua região.
+        """
+        self.cpf = [x for x in self.cpf if x.isnumeric()]
+        self.regiao = self.cpf[8] if len(self.cpf) >= 9 else None
+        if len(self.cpf) == 11:
+            return True, str(self.regiao)
+        if len(self.cpf) > 11:
+            self.cpf = self.cpf[:11]
+            return True, str(self.regiao)
+        return False, None
+
+    def calculo(self):
+        """
+        Calcula e valida os dígitos verificadores do CPF.
+        """
+        self.primeiros = self.cpf[:9]
+        self.verificadores = self.cpf[9:]
+        for k in range(2):
+            self.mult = list(range(10 + k, 1, -1))
+            soma = sum(int(num) * self.mult[i] for i, num in enumerate(self.primeiros))
+            resto = soma % 11
+            final = 0 if resto in (0, 1) else 11 - resto
+            if final == int(self.verificadores[k]):
+                self.primeiros.append(self.verificadores[k])
+                if k == 1:
+                    self.primeiros.insert(3, ".")
+                    self.primeiros.insert(7, ".")
+                    self.primeiros.insert(11, "-")
+                    self.cpf = ''.join(self.primeiros)
+                    return True
+            else:
+                return False
+        return False
+
+def cpf_regioes(regiao_digito):
+    """
+    Verifica a região do CPF.
+    """
+    regioes = {
+        '0': 'Rio Grande do Sul',
+        '1': 'Distrito Federal, Goias, Mato Grosso, Mato Grosso do Sul e Tocantins',
+        '2': 'Amazonas, Para, Roraima, Amapa, Acre e Rondonia',
+        '3': 'Ceara, Maranhao e Piaui',
+        '4': 'Paraiba, Pernambuco, Alagoas e Rio Grande do Norte',
+        '5': 'Bahia e Sergipe',
+        '6': 'Minas Gerais',
+        '7': 'Rio de Janeiro e Espirito Santo',
+        '8': 'Sao Paulo',
+        '9': 'Parana e Santa Catarina'
+    }
+    return regioes[regiao_digito]
+
 def check_input(form):
     """
-    o que faz:
-        estancia a classe ChecarCpf com o cpf do formulario
-    argumentos:
-        form - cpf obtido do input
+    Verifica um único CPF inserido em um formulário.
     """
     if form:
-        objetoCpf = ChecarCpf(form)
-        if objetoCpf.tratamento():
-            if objetoCpf.calculo():
-                flash(f"O cpf {objetoCpf.cpf} é válido", "alert-success")
+        objeto_cpf = ChecarCpf(form)
+        validacao, regiao_digito = objeto_cpf.tratamento()
+        if validacao:
+            if objeto_cpf.calculo():
+                flash(f"O CPF {objeto_cpf.cpf} é válido, e a região é {cpf_regioes(regiao_digito)}",
+                "alert-success")
             else:
-                flash("Não é um cpf válido", "alert-danger")
+                flash("Não é um CPF válido", "alert-danger")
         else:
-            flash("Não é um cpf válido", "alert-danger")
-            
+            flash("Tratamento: Não é um CPF válido", "alert-danger")
+
 def check_file(form):
     """
-    o que faz: 
-        compara os cpfs do txt e cria dois arquivos txt dos validos e invalidos 
-    argumentos:
-        form - arquivo txt com cpfs
-    retorno:
-        arquivos txts validados e invalidos
-    """                         
+    Verifica um arquivo contendo múltiplos números de CPF.
+    """
     arquivo = form
-    nome, extensao = os.path.splitext(arquivo.filename)
-    caminho_salvar, nome = nome_arquivo(nome, "principal")
+    nome, _ = os.path.splitext(arquivo.filename)
+    caminho_salvar, _ = nome_arquivo_unico(nome, "principal")
     arquivo.save(caminho_salvar)
-    
-    #armazena em uma lista os cpf 
-    with open(caminho_salvar, 'r') as arquivo:
-        linhas = arquivo.readlines()
-        lista = [linha.rstrip() for linha in linhas]
+
+    cpfs = ler_cpfs_do_arquivo(caminho_salvar)
+    validos, invalidos = processar_cpfs(cpfs)
+
+    caminho_invalidos, nome_invalido_txt = nome_arquivo_unico("invalidos", "invalidos")
+    criar_txt(caminho_invalidos, invalidos)
+
+    caminho_validos, nome_valido_txt = nome_arquivo_unico("validos", "validos")
+    criar_txt(caminho_validos, validos)
+
+    return nome_valido_txt, nome_invalido_txt
+
+def ler_cpfs_do_arquivo(caminho):
+    """
+    Lê os CPFs de um arquivo e retorna uma lista de CPFs.
+    """
+    with open(caminho, 'r', encoding='utf-8') as file:
+        return [linha.rstrip() for linha in file.readlines()]
+
+def processar_cpfs(lista):
+    """
+    Processa a lista de CPFs, separando-os em válidos e inválidos.
+    """
     site = "site do projeto: https://checarcpf.onrender.com"
     github = "codigo fonte: https://github.com/Fabiolegra/ChecarCpf"
     aparencia = "     CPF       |    Regioes     "
-    invalidos = [site,github]
-    validos = [site,github,aparencia]
-    cpf_regioes = {
-    '0': 'Rio Grande do Sul',
-    '1': 'Distrito Federal, Goias, Mato Grosso, Mato Grosso do Sul e Tocantins',
-    '2': 'Amazonas, Para, Roraima, Amapa, Acre e Rondonia',
-    '3': 'Ceará, Maranhão e Piauí',
-    '4': 'Paraiba, Pernambuco, Alagoas e Rio Grande do Norte',
-    '5': 'Bahia e Sergipe',
-    '6': 'Minas Gerais',
-    '7': 'Rio de Janeiro e Espirito Santo',
-    '8': 'São Paulo',
-    '9': 'Parana e Santa Catarina'
-    }
-    # checa se o cpf da lista e valida ou nao adicionando ela em outra lista validos ou invalidos
+    invalidos = [site, github,"\n"]
+    validos = [site, github,"\n", aparencia]
     for cpf_ in lista:
-        objetoCpf = ChecarCpf(cpf_)
-        validacao, regiao_digito = objetoCpf.tratamento()
+        objeto_cpf = ChecarCpf(cpf_)
+        validacao, regiao_digito = objeto_cpf.tratamento()
         if validacao:
-            if objetoCpf.calculo():
-                regiao = cpf_regioes[regiao_digito]
-                validos.append(f"{objetoCpf.cpf} - {regiao}")#cpf formatado
+            if objeto_cpf.calculo():
+                regiao = cpf_regioes(regiao_digito)
+                validos.append(f"{objeto_cpf.cpf} - {regiao}")
             else:
                 invalidos.append(cpf_)
         else:
             invalidos.append(cpf_)
-            
-    caminho_invalidos, nome_invalido_txt = nome_arquivo("invalidos", "invalidos")
-    criar_txt(caminho_invalidos, invalidos)#criação do txt de cpf invalido
-        
-    caminho_validos, nome_valido_txt = nome_arquivo("validos", "validos")
-    criar_txt(caminho_validos, validos)#criação do txt de cpf valido
-        
-    return nome_valido_txt, nome_invalido_txt
-        
-        
-def nome_arquivo(nome,pasta):
+
+    return validos, invalidos
+
+def nome_arquivo_unico(nome, pasta):
     """
-    o que faz:
-        cria um caminho adicionando digitos aleatorios ao nome do arquivo e retorna o caminho e o nome do arquivo
-    argumentos:
-        nome : string - nome antes da alteração
-        pasta : string - onde o arquivo será armazenado
+    Gera um nome de arquivo único e retorna o caminho completo e o nome do arquivo.
     """
-    codigo = secrets.token_hex(8)#criando um codigo aleatorio para não confundir arquivos de mesmos nomes
-    nome = nome.replace(" ", "")#retirando o espaço em branco do nome do arquivo
-    nome_do_arquivo = nome + codigo + ".txt"#criando um nome com o codigo e a extensão
-    caminho = os.path.join(app.root_path,f"arquivos/{pasta}", nome_do_arquivo)#caminho onde o arquivo será salvo
+    codigo = secrets.token_hex(8)
+    nome = nome.replace(" ", "")
+    nome_do_arquivo = f"{nome}{codigo}.txt"
+    caminho = os.path.join(app.root_path, f"arquivos/{pasta}", nome_do_arquivo)
     return caminho, nome_do_arquivo
-    
-    
-def criar_txt(destino,lista):
+
+def criar_txt(destino, lista):
     """
-    o que faz:
-        cria um txt escrevendo cada 'cpf' em uma linha
-    argumentos:
-        destino: string - nome do arquivo e onde ele será salvo
-        lista: list - lista de cpf a serem adicionados no txt
+    Cria um arquivo de texto no destino especificado com o conteúdo da lista fornecida.
     """
-    with open(destino, "w") as arquivo:
+    with open(destino, "w", encoding='utf-8') as arquivo:
         for item in lista:
-            arquivo.write(str(item) + "\n")
-        
-            
+            arquivo.write(f"{item}\n")
